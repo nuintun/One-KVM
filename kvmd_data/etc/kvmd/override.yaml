@@ -17,8 +17,9 @@ kvmd:
 
     server:
         unix: kvmd_data/run/kvmd/kvmd.sock
-        #unix_mode: 432
-        #unix_rm: true
+        web_path: kvmd_data/usr/share/kvmd/web
+        host: 0.0.0.0
+        port: 8080
 
     atx:
         type: disabled

@@ -30,6 +30,18 @@ from typing import Any
 from aiohttp.web import Request
 from aiohttp.web import Response
 from aiohttp.web import WebSocketResponse
+from aiohttp.web import HTTPForbidden
+from aiohttp.web import HTTPNotFound
+from aiohttp.web import FileResponse
+from aiohttp.web import HTTPInternalServerError
+from aiohttp.web import StreamResponse
+
+import os
+from aiohttp import ClientConnectionError
+from aiohttp import ClientSession
+from aiohttp import UnixConnector
+from urllib.parse import urlencode
+
 
 from ... import __version__
 
@@ -153,7 +165,9 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         snapshoter: Snapshoter,
 
         keymap_path: str,
-
+        web_path: str,
+        host: str,
+        port: int,
         stream_forever: bool,
     ) -> None:
 
@@ -194,6 +208,9 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         self.__streamer_notifier = aiotools.AioNotifier()
         self.__reset_streamer = False
         self.__new_streamer_params: dict = {}
+        self.__web_path = web_path
+        self.__host = host
+        self.__port = port
 
     # ===== STREAMER CONTROLLER
 
@@ -306,6 +323,53 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
             self._get_wss(),
         )))
 
+    # ===== WEB TASKS
+    @exposed_http("GET", "/streamer/stream")
+    async def proxy_stream_handler(self, request):
+        socket_path = self.__streamer.get_path()
+        query_string = urlencode(request.query)
+        headers = request.headers.copy()
+        try:
+            async with ClientSession(connector=UnixConnector(path=socket_path)) as session:
+                backend_url = f'http://localhost/stream?{query_string}' if query_string else 'http://localhost/stream'
+                async with session.get(backend_url, headers=headers) as resp:
+                    response = StreamResponse(status=resp.status, reason=resp.reason, headers=resp.headers)
+                    await response.prepare(request)
+                    while True:
+                        chunk = await resp.content.read(512000)
+                        if not chunk:
+                            break
+                        await response.write(chunk)
+                    return response
+        except ClientConnectionError:
+            return Response(status=500, text="Client connection was closed")
+
+
+    @exposed_http("GET", "/{path:.*}", auth_required=False)
+    async def __html_file_handler(self, req: Request) -> Response:
+        path = req.match_info['path']
+        if not os.path.exists(self.__web_path):
+            raise HTTPNotFound(text="Web root directory not found.")
+        full_path = os.path.normpath(os.path.join(self.__web_path, path))
+
+        if not full_path.startswith(self.__web_path):
+            raise HTTPForbidden(text="Access denied.")
+
+        if os.path.isdir(full_path):
+            index_path = os.path.join(full_path, 'index.html')
+            if os.path.isfile(index_path):
+                full_path = index_path
+            else:
+                raise HTTPNotFound(text="404 Not Found")
+        
+        if not (os.path.exists(full_path) and os.path.isfile(full_path)):
+            raise HTTPNotFound(text="404 Not Found")
+
+        try:
+            return FileResponse(full_path)
+        except IOError as e:
+            raise HTTPInternalServerError(text=str(e))
+        
     # ===== SYSTEM TASKS
 
     async def __stream_controller(self) -> None:

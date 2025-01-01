@@ -103,6 +103,9 @@ def main(argv: (list[str] | None)=None) -> None:
         ),
 
         keymap_path=config.hid.keymap,
+        web_path=config.server.web_path,
+        host=config.server.host,
+        port=config.server.port,
 
         stream_forever=config.streamer.forever,
     ).run(**config.server._unpack())

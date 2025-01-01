@@ -288,12 +288,12 @@ class HttpServer:
         unix_mode: int,
         heartbeat: float,
         access_log_format: str,
+        web_path: str,
+        host: str,
+        port: int,
     ) -> None:
 
         self.__ws_heartbeat = heartbeat
-        # 默认绑定到所有地址
-        host = '0.0.0.0'  
-        port = 8080
         #if unix_rm and os.path.exists(unix_path):
             #os.remove(unix_path)
         #server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)

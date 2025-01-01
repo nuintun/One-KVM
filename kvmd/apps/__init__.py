@@ -353,6 +353,9 @@ def _get_config_scheme() -> dict:
                 "heartbeat":         Option(15.0,  type=valid_float_f01),
                 "access_log_format": Option("[%P / %{X-Real-IP}i] '%r' => %s; size=%b ---"
                                             " referer='%{Referer}i'; user_agent='%{User-Agent}i'"),
+                "web_path":              Option("/usr/share/kvmd/web", type=valid_abs_path),
+                "host":           Option("127.0.0.1",  type=valid_ip_or_host),
+                "port":         Option(8080, type=valid_port),
             },
 
             "auth": {

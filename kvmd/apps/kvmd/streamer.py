@@ -271,7 +271,9 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
 
     def get_params(self) -> dict:
         return self.__params.get_params()
-
+    
+    def get_path(self) -> str:
+        return self.__unix_path
     # =====
 
     async def get_state(self) -> dict:
