@@ -47,11 +47,11 @@ class StreamerApi:
 
     # =====
 
-    @exposed_http("GET", "/streamer")
+    @exposed_http("GET", "/api/streamer")
     async def __state_handler(self, _: Request) -> Response:
         return make_json_response(await self.__streamer.get_state())
 
-    @exposed_http("GET", "/streamer/snapshot")
+    @exposed_http("GET", "/api/streamer/snapshot")
     async def __take_snapshot_handler(self, req: Request) -> Response:
         snapshot = await self.__streamer.take_snapshot(
             save=valid_bool(req.query.get("save", False)),
@@ -92,11 +92,11 @@ class StreamerApi:
             )
         raise UnavailableError()
 
-    @exposed_http("DELETE", "/streamer/snapshot")
+    @exposed_http("DELETE", "/api/streamer/snapshot")
     async def __remove_snapshot_handler(self, _: Request) -> Response:
         self.__streamer.remove_snapshot()
         return make_json_response()
 
-    @exposed_http("GET", "/streamer/ocr")
+    @exposed_http("GET", "/api/streamer/ocr")
     async def __ocr_handler(self, _: Request) -> Response:
         return make_json_response({"ocr": (await self.__ocr.get_state())})

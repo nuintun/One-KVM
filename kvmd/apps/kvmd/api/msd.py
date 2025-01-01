@@ -61,7 +61,7 @@ class MsdApi:
 
     # =====
 
-    @exposed_http("GET", "/msd")
+    @exposed_http("GET", "/api/msd")
     async def __state_handler(self, _: Request) -> Response:
         state = await self.__msd.get_state()
         if state["storage"] and state["storage"]["parts"]:
@@ -69,7 +69,7 @@ class MsdApi:
             state["storage"]["free"] = state["storage"]["parts"][""]["free"]  # Legacy API
         return make_json_response(state)
 
-    @exposed_http("POST", "/msd/set_params")
+    @exposed_http("POST", "/api/msd/set_params")
     async def __set_params_handler(self, req: Request) -> Response:
         params = {
             key: validator(req.query.get(param))
@@ -83,19 +83,19 @@ class MsdApi:
         await self.__msd.set_params(**params)  # type: ignore
         return make_json_response()
 
-    @exposed_http("POST", "/msd/set_connected")
+    @exposed_http("POST", "/api/msd/set_connected")
     async def __set_connected_handler(self, req: Request) -> Response:
         await self.__msd.set_connected(valid_bool(req.query.get("connected")))
         return make_json_response()
     
-    @exposed_http("POST", "/msd/make_image")
+    @exposed_http("POST", "/api/msd/make_image")
     async def __set_zipped_handler(self, req: Request) -> Response:
         await self.__msd.make_image(valid_bool(req.query.get("zipped")))
         return make_json_response()
 
     # =====
 
-    @exposed_http("GET", "/msd/read")
+    @exposed_http("GET", "/api/msd/read")
     async def __read_handler(self, req: Request) -> StreamResponse:
         name = valid_msd_image_name(req.query.get("image"))
         compressors = {
@@ -143,7 +143,7 @@ class MsdApi:
 
     # =====
 
-    @exposed_http("POST", "/msd/write")
+    @exposed_http("POST", "/api/msd/write")
     async def __write_handler(self, req: Request) -> Response:
         unsafe_prefix = req.query.get("prefix", "") + "/"
         name = valid_msd_image_name(unsafe_prefix + req.query.get("image", ""))
@@ -159,7 +159,7 @@ class MsdApi:
                 written = await writer.write_chunk(chunk)
         return make_json_response(self.__make_write_info(name, size, written))
 
-    @exposed_http("POST", "/msd/write_remote")
+    @exposed_http("POST", "/api/msd/write_remote")
     async def __write_remote_handler(self, req: Request) -> (Response | StreamResponse):  # pylint: disable=too-many-locals
         unsafe_prefix = req.query.get("prefix", "") + "/"
         url = valid_url(req.query.get("url"))
@@ -223,12 +223,12 @@ class MsdApi:
 
     # =====
 
-    @exposed_http("POST", "/msd/remove")
+    @exposed_http("POST", "/api/msd/remove")
     async def __remove_handler(self, req: Request) -> Response:
         await self.__msd.remove(valid_msd_image_name(req.query.get("image")))
         return make_json_response()
 
-    @exposed_http("POST", "/msd/reset")
+    @exposed_http("POST", "/api/msd/reset")
     async def __reset_handler(self, _: Request) -> Response:
         await self.__msd.reset()
         return make_json_response()

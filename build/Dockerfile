@@ -30,23 +30,9 @@ RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/' /etc/apt/sources.lis
 RUN if [ ${TARGETARCH} = arm ]; then ARCH=armhf; elif [ ${TARGETARCH} = arm64 ]; then ARCH=aarch64; elif [ ${TARGETARCH} = amd64 ]; then ARCH=x86_64; fi \
     && curl https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.$ARCH -L -o /usr/local/bin/ttyd \
     && chmod +x /usr/local/bin/ttyd \
-    && adduser kvmd --gecos "" --disabled-password \
-    && ln -sf /usr/share/tesseract-ocr/*/tessdata /usr/share/tessdata \
-    && mkdir -p /etc/kvmd_backup/override.d /var/lib/kvmd/msd/images /var/lib/kvmd/msd/meta /var/lib/kvmd/pst/data /var/lib/kvmd/msd/NormalFiles /opt/vc/bin /run/kvmd /tmp/kvmd-nginx \
-    && touch /run/kvmd/ustreamer.sock
+    && ln -sf /usr/share/tesseract-ocr/*/tessdata /usr/share/tessdata
 
 
-COPY testenv/fakes/vcgencmd scripts/kvmd* /usr/bin/
-COPY extras/ /usr/share/kvmd/extras/
-COPY web/ /usr/share/kvmd/web/
-COPY scripts/kvmd-gencert /usr/share/kvmd/
-COPY build/platform/docker /usr/share/kvmd/platform
-COPY contrib/keymaps /usr/share/kvmd/keymaps
-COPY kvmd/ build/init.sh /kvmd/
-COPY configs/kvmd/ /etc/kvmd_backup/
-COPY configs/nginx/ /etc/kvmd_backup/nginx/
-COPY configs/janus/ /etc/kvmd_backup/janus/
-COPY configs/hw_info/ /etc/kvmd_backup/hw_info/
-COPY testenv/js/ /usr/share/janus/javascript/
+COPY . /One-KVM
 
-ENTRYPOINT ["/kvmd/init.sh"]
+ENTRYPOINT ["bash"]

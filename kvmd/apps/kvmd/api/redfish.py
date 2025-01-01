@@ -65,7 +65,7 @@ class RedfishApi:
 
     # =====
 
-    @exposed_http("GET", "/redfish/v1", auth_required=False)
+    @exposed_http("GET", "/api/redfish/v1", auth_required=False)
     async def __root_handler(self, _: Request) -> Response:
         return make_json_response({
             "@odata.id": "/redfish/v1",
@@ -76,7 +76,7 @@ class RedfishApi:
             "Systems": {"@odata.id": "/redfish/v1/Systems"},
         }, wrap_result=False)
 
-    @exposed_http("GET", "/redfish/v1/Systems")
+    @exposed_http("GET", "/api/redfish/v1/Systems")
     async def __systems_handler(self, _: Request) -> Response:
         return make_json_response({
             "@odata.id": "/redfish/v1/Systems",
@@ -86,7 +86,7 @@ class RedfishApi:
             "Name": "Computer System Collection",
         }, wrap_result=False)
 
-    @exposed_http("GET", "/redfish/v1/Systems/0")
+    @exposed_http("GET", "/api/redfish/v1/Systems/0")
     async def __server_handler(self, _: Request) -> Response:
         (atx_state, info_state) = await asyncio.gather(*[
             self.__atx.get_state(),
@@ -110,7 +110,7 @@ class RedfishApi:
             "PowerState": ("On" if atx_state["leds"]["power"] else "Off"),  # type: ignore
         }, wrap_result=False)
 
-    @exposed_http("POST", "/redfish/v1/Systems/0/Actions/ComputerSystem.Reset")
+    @exposed_http("POST", "/api/redfish/v1/Systems/0/Actions/ComputerSystem.Reset")
     async def __power_handler(self, req: Request) -> Response:
         try:
             action = check_string_in_list(

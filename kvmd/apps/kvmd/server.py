@@ -197,7 +197,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
 
     # ===== STREAMER CONTROLLER
 
-    @exposed_http("POST", "/streamer/set_params")
+    @exposed_http("POST", "/api/streamer/set_params")
     async def __streamer_set_params_handler(self, req: Request) -> Response:
         current_params = self.__streamer.get_params()
         for (name, validator, exc_cls) in [
@@ -218,7 +218,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         self.__streamer_notifier.notify()
         return make_json_response()
 
-    @exposed_http("POST", "/streamer/reset")
+    @exposed_http("POST", "/api/streamer/reset")
     async def __streamer_reset_handler(self, _: Request) -> Response:
         self.__reset_streamer = True
         self.__streamer_notifier.notify()
@@ -226,7 +226,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
 
     # ===== WEBSOCKET
 
-    @exposed_http("GET", "/ws")
+    @exposed_http("GET", "/api/ws")
     async def __ws_handler(self, req: Request) -> WebSocketResponse:
         stream = valid_bool(req.query.get("stream", True))
         legacy = valid_bool(req.query.get("legacy", True))

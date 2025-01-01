@@ -72,13 +72,23 @@ class BaseHttpClient:
     def make_session(self) -> BaseHttpClientSession:
         raise NotImplementedError
 
-    def _make_http_session(self, headers: (dict[str, str] | None)=None) -> aiohttp.ClientSession:
+    def _make_http_session(self, headers: dict[str, str] | None = None) -> aiohttp.ClientSession:
+        connector = None
+        #这里临时使用 socket  ，后期考虑是否使用 http 方式
+        use_unix_socket = True
+        if use_unix_socket:
+            connector = aiohttp.UnixConnector(path=self.__unix_path)
+            base_url = "http://localhost:0"  # 继续使用 Unix 域套接字
+        else:
+            base_url = "http://127.0.0.1:8001"  # 使用指定的 IP 和端口
+        
+        #print("base_url:", base_url)
         return aiohttp.ClientSession(
-            base_url="http://localhost:0",
+            base_url=base_url,
             headers={
                 "User-Agent": self.__user_agent,
                 **(headers or {}),
             },
-            connector=aiohttp.UnixConnector(path=self.__unix_path),
+            connector=connector,
             timeout=aiohttp.ClientTimeout(total=self.__timeout),
         )

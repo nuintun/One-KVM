@@ -291,13 +291,18 @@ class HttpServer:
     ) -> None:
 
         self.__ws_heartbeat = heartbeat
-
-        if unix_rm and os.path.exists(unix_path):
-            os.remove(unix_path)
-        server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        server_socket.bind(unix_path)
-        if unix_mode:
-            os.chmod(unix_path, unix_mode)
+        # 默认绑定到所有地址
+        host = '0.0.0.0'  
+        port = 8080
+        #if unix_rm and os.path.exists(unix_path):
+            #os.remove(unix_path)
+        #server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        #server_socket.bind(unix_path)
+        #if unix_mode:
+           # os.chmod(unix_path, unix_mode)
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # 允许重用地址
+        server_socket.bind((host, port))
 
         run_app(
             sock=server_socket,

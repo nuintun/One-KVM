@@ -73,7 +73,7 @@ class HidApi:
     async def __state_handler(self, _: Request) -> Response:
         return make_json_response(await self.__hid.get_state())
 
-    @exposed_http("POST", "/hid/set_params")
+    @exposed_http("POST", "/api/hid/set_params")
     async def __set_params_handler(self, req: Request) -> Response:
         params = {
             key: validator(req.query.get(key))
@@ -87,12 +87,12 @@ class HidApi:
         self.__hid.set_params(**params)  # type: ignore
         return make_json_response()
 
-    @exposed_http("POST", "/hid/set_connected")
+    @exposed_http("POST", "/api/hid/set_connected")
     async def __set_connected_handler(self, req: Request) -> Response:
         self.__hid.set_connected(valid_bool(req.query.get("connected")))
         return make_json_response()
 
-    @exposed_http("POST", "/hid/reset")
+    @exposed_http("POST", "/api/hid/reset")
     async def __reset_handler(self, _: Request) -> Response:
         await self.__hid.reset()
         return make_json_response()
@@ -112,11 +112,11 @@ class HidApi:
             },
         }
 
-    @exposed_http("GET", "/hid/keymaps")
+    @exposed_http("GET", "/api/hid/keymaps")
     async def __keymaps_handler(self, _: Request) -> Response:
         return make_json_response(await self.get_keymaps())
 
-    @exposed_http("POST", "/hid/print")
+    @exposed_http("POST", "/api/hid/print")
     async def __print_handler(self, req: Request) -> Response:
         text = await req.text()
         limit = int(valid_int_f0(req.query.get("limit", 1024)))
@@ -243,7 +243,7 @@ class HidApi:
 
     # =====
 
-    @exposed_http("POST", "/hid/events/send_key")
+    @exposed_http("POST", "/api/hid/events/send_key")
     async def __events_send_key_handler(self, req: Request) -> Response:
         key = valid_hid_key(req.query.get("key"))
         if "state" in req.query:
@@ -253,7 +253,7 @@ class HidApi:
             self.__hid.send_key_events([(key, True), (key, False)])
         return make_json_response()
 
-    @exposed_http("POST", "/hid/events/send_mouse_button")
+    @exposed_http("POST", "/api/hid/events/send_mouse_button")
     async def __events_send_mouse_button_handler(self, req: Request) -> Response:
         button = valid_hid_mouse_button(req.query.get("button"))
         if "state" in req.query:
@@ -264,18 +264,18 @@ class HidApi:
             self.__hid.send_mouse_button_event(button, False)
         return make_json_response()
 
-    @exposed_http("POST", "/hid/events/send_mouse_move")
+    @exposed_http("POST", "/api/hid/events/send_mouse_move")
     async def __events_send_mouse_move_handler(self, req: Request) -> Response:
         to_x = valid_hid_mouse_move(req.query.get("to_x"))
         to_y = valid_hid_mouse_move(req.query.get("to_y"))
         self.__hid.send_mouse_move_event(to_x, to_y)
         return make_json_response()
 
-    @exposed_http("POST", "/hid/events/send_mouse_relative")
+    @exposed_http("POST", "/api/hid/events/send_mouse_relative")
     async def __events_send_mouse_relative_handler(self, req: Request) -> Response:
         return self.__process_http_delta_event(req, self.__hid.send_mouse_relative_event)
 
-    @exposed_http("POST", "/hid/events/send_mouse_wheel")
+    @exposed_http("POST", "/api/hid/events/send_mouse_wheel")
     async def __events_send_mouse_wheel_handler(self, req: Request) -> Response:
         return self.__process_http_delta_event(req, self.__hid.send_mouse_wheel_event)
 

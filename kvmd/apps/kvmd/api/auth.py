@@ -84,7 +84,7 @@ class AuthApi:
 
     # =====
 
-    @exposed_http("POST", "/auth/login", auth_required=False)
+    @exposed_http("POST", "/api/auth/login", auth_required=False)
     async def __login_handler(self, req: Request) -> Response:
         if self.__auth_manager.is_auth_enabled():
             credentials = await req.post()
@@ -97,13 +97,13 @@ class AuthApi:
             raise ForbiddenError()
         return make_json_response()
 
-    @exposed_http("POST", "/auth/logout")
+    @exposed_http("POST", "/api/auth/logout")
     async def __logout_handler(self, req: Request) -> Response:
         if self.__auth_manager.is_auth_enabled():
             token = valid_auth_token(req.cookies.get(_COOKIE_AUTH_TOKEN, ""))
             self.__auth_manager.logout(token)
         return make_json_response()
 
-    @exposed_http("GET", "/auth/check")
+    @exposed_http("GET", "/api/auth/check")
     async def __check_handler(self, _: Request) -> Response:
         return make_json_response()

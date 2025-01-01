@@ -21,3 +21,6 @@
 /venv/
 .vscode/settings.j/son
 kvmd_config/
+__pycache__/
+kvmd_data/run/kvmd/*
+.vscode/
