@@ -77,7 +77,6 @@ kvmd:
             - "--unix-rm"
             - "--unix-mode=777"
             - "--exit-on-parent-death"
-            - "--process-name-prefix={process_name_prefix}"
             - "--notify-parent"
             - "--no-log-colors"
             - "--jpeg-sink=kvmd::ustreamer::jpeg"
@@ -86,72 +85,7 @@ kvmd:
 
         unix: kvmd_data/run/kvmd/ustreamer.sock
 
-    gpio:
-        drivers:
-            wol_server1:
-                type: wol
-                mac: 2c:56:dc:db:7c:1e
-            short_press:
-                type: cmd
-                cmd: [kvmd_data/etc/kvmd/atx.sh, short]
-            long_press:
-                type: cmd
-                cmd: [kvmd_data/etc/kvmd/atx.sh, long]
-            reset_press:
-                type: cmd
-                cmd: [kvmd_data/etc/kvmd/atx.sh, reset]
-            input1:
-                type: cmd
-                cmd: [kvmd_data/etc/kvmd/kvm_input.sh, 1]    
-            input2:
-                type: cmd
-                cmd: [kvmd_data/etc/kvmd/kvm_input.sh, 2]
-        scheme:
-            wol_server1:
-                driver: wol_server1
-                pin: 0
-                mode: output
-                switch: false
-            short_button:
-                driver: short_press
-                pin: 0
-                mode: output
-                switch: false
-            long_button:
-                driver: long_press
-                pin: 0
-                mode: output
-                switch: false
-            reset_button:
-                driver: reset_press
-                pin: 0
-                mode: output
-                switch: false
-            input1-button:
-                driver: input1
-                pin: 0
-                mode: output
-                switch: false
-            input2-button:
-                driver: input2
-                pin: 0
-                mode: output
-                switch: false
-        view:
-            header:
-                title: 高级功能
-            table:
-                - ["#电源管理"]
-                - ["#短按（开/关机）:", short_button|按下]
-                - ["#长按（强制关机）:", long_button|按下]
-                - ["#重启:", reset_button|按下]
-                - []
-                - ["#网络唤醒"]
-                - ["#被控机设备", wol_server1|网络唤醒]
-                - []
-                - ["#KVM 切换"]
-                - ["#HDMI 1", input1-button|切换]
-                - ["#HDMI 2", input2-button|切换]
+    
 ipmi:
     auth:
         file: kvmd_data/etc/kvmd/ipmipasswd

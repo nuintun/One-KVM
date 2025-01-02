@@ -24,3 +24,8 @@ kvmd_config/
 __pycache__/
 kvmd_data/run/kvmd/*
 .vscode/
+kvmd-launcher.bin
+kvmd-launcher.build
+kvmd-launcher.dist
+kvmd-launcher.onefile-build
+ustreamer/

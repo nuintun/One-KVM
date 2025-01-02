@@ -21,3 +21,7 @@
 /*.pkg.tar.zst
 /*.egg-info
 /*kvmd-*.tar.gz
+kvmd-launcher.bin
+kvmd-launcher.build
+kvmd-launcher.dist
+kvmd-launcher.onefile-build

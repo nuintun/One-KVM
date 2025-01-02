@@ -285,12 +285,12 @@ run-stage-0:
 run-build-dev:
 	$(DOCKER) buildx build -t registry.cn-hangzhou.aliyuncs.com/silentwind/kvmd:dev \
 		--platform linux/amd64,linux/arm64,linux/arm/v7  \
-		--build-arg CACHEBUST=$(date +%s) \
+		--build-arg CACHEBUST=$(date +%s) --allow security.insecure \
 		-f build/Dockerfile . \
 		--push
 	$(DOCKER) buildx build -t silentwind0/kvmd:dev \
 		--platform linux/amd64,linux/arm64,linux/arm/v7  \
-		--build-arg CACHEBUST=$(date +%s) \
+		--build-arg CACHEBUST=$(date +%s) --allow security.insecure \
 		-f build/Dockerfile . \
 		--push
 
@@ -351,16 +351,16 @@ run-nogpio: testenv
 			&& $(if $(CMD),$(CMD),python -m kvmd.apps.kvmd --run) \
 		"
 nuitka:
-	python -m nuitka kvmd-test.py --standalone --onefile --no-deployment-flag=self-execution --include-module=\
-		kvmd.plugins.auth.htpasswd,kvmd.plugins.auth.http,kvmd.plugins.auth.ldap,\
-		kvmd.plugins.auth.pam,kvmd.plugins.auth.radius,\
-		kvmd.plugins.hid.ch9329,kvmd.plugins.hid.bt,kvmd.plugins.hid.otg,\
-		kvmd.plugins.atx.disabled,kvmd.plugins.atx.gpio,\
-		kvmd.plugins.msd.disabled,kvmd.plugins.msd.otg,\
-		kvmd.plugins.ugpio.gpio,kvmd.plugins.ugpio.wol,kvmd.plugins.ugpio.cmd,\
-		kvmd.plugins.ugpio.ipmi,kvmd.plugins.ugpio.anelpwr,kvmd.plugins.ugpio.cmdret,\
-		kvmd.plugins.ugpio.extron,kvmd.plugins.ugpio.ezcoo,kvmd.plugins.ugpio.hidrelay,\
-		kvmd.plugins.ugpio.hue,kvmd.plugins.ugpio.locator,kvmd.plugins.ugpio.noyito,\
-		kvmd.plugins.ugpio.otgconf,kvmd.plugins.ugpio.pway,kvmd.plugins.ugpio.pwm,\
-		kvmd.plugins.ugpio.servo,kvmd.plugins.ugpio.tesmart,kvmd.plugins.ugpio.xh_hk4401,\
-		passlib.handlers.sha1_crypt,pygments.formatters.terminal
+	python3.11 -m nuitka kvmd-launcher.py --standalone --onefile --no-deployment-flag=self-execution --include-module=\
+kvmd.plugins.auth.htpasswd,kvmd.plugins.auth.http,kvmd.plugins.auth.ldap,\
+kvmd.plugins.auth.pam,kvmd.plugins.auth.radius,\
+kvmd.plugins.hid.ch9329,kvmd.plugins.hid.bt,kvmd.plugins.hid.otg,\
+kvmd.plugins.atx.disabled,kvmd.plugins.atx.gpio,\
+kvmd.plugins.msd.disabled,kvmd.plugins.msd.otg,\
+kvmd.plugins.ugpio.gpio,kvmd.plugins.ugpio.wol,kvmd.plugins.ugpio.cmd,\
+kvmd.plugins.ugpio.ipmi,kvmd.plugins.ugpio.anelpwr,kvmd.plugins.ugpio.cmdret,\
+kvmd.plugins.ugpio.extron,kvmd.plugins.ugpio.ezcoo,kvmd.plugins.ugpio.hidrelay,\
+kvmd.plugins.ugpio.hue,kvmd.plugins.ugpio.locator,kvmd.plugins.ugpio.noyito,\
+kvmd.plugins.ugpio.otgconf,kvmd.plugins.ugpio.pway,kvmd.plugins.ugpio.pwm,\
+kvmd.plugins.ugpio.servo,kvmd.plugins.ugpio.tesmart,kvmd.plugins.ugpio.xh_hk4401,\
+passlib.handlers.sha1_crypt,pygments.formatters.terminal
