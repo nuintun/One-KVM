@@ -336,7 +336,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
                     response = StreamResponse(status=resp.status, reason=resp.reason, headers=resp.headers)
                     await response.prepare(request)
                     while True:
-                        chunk = await resp.content.read(512000)
+                        chunk = await resp.content.read(32768)
                         if not chunk:
                             break
                         await response.write(chunk)

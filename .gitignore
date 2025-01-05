@@ -29,3 +29,4 @@ kvmd-launcher.build
 kvmd-launcher.dist
 kvmd-launcher.onefile-build
 ustreamer/
+node_modules/
