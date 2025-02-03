@@ -32,7 +32,7 @@ from typing import Generator
 from typing import AsyncGenerator
 
 import aiohttp
-import ustreamer
+#import ustreamer
 
 from PIL import Image as PilImage
 

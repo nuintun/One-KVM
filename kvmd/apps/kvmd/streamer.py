@@ -20,6 +20,7 @@
 # ========================================================================== #
 
 
+import platform
 import signal
 import asyncio
 import asyncio.subprocess
@@ -302,7 +303,8 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
             self.__notifier.notify(self.__ST_STREAMER)
 
         get_logger(0).info("Installing SIGUSR2 streamer handler ...")
-        asyncio.get_event_loop().add_signal_handler(signal.SIGUSR2, signal_handler)
+        if platform.system() != 'Windows':
+            asyncio.get_event_loop().add_signal_handler(signal.SIGUSR2, signal_handler)
 
         prev: dict = {}
         while True:
@@ -338,7 +340,7 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
             session = self.__ensure_client_session()
             try:
                 return (await session.get_state())
-            except (aiohttp.ClientConnectionError, aiohttp.ServerConnectionError):
+            except (aiohttp.ClientConnectionError, aiohttp.ServerConnectionError,TimeoutError,asyncio.CancelledError,asyncio.TimeoutError,asyncio.CancelledError):
                 pass
             except Exception:
                 get_logger().exception("Invalid streamer response from /state")

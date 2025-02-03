@@ -27,6 +27,7 @@ import ssl
 import functools
 import types
 import typing
+import platform
 
 from typing import Callable
 from typing import Awaitable
@@ -56,8 +57,9 @@ def run(coro: Coroutine, final: (Coroutine | None)=None) -> None:
         raise SystemExit()
 
     loop = asyncio.get_event_loop()
-    loop.add_signal_handler(signal.SIGINT, sigint_handler)
-    loop.add_signal_handler(signal.SIGTERM, sigterm_handler)
+    if platform.system() != 'Windows':
+        loop.add_signal_handler(signal.SIGINT, sigint_handler)
+        loop.add_signal_handler(signal.SIGTERM, sigterm_handler)
 
     main_task = loop.create_task(coro)
     try:

@@ -76,12 +76,14 @@ class SystemInfoSubmanager(BaseInfoSubmanager):
         except Exception:
             get_logger(0).exception("Can't get streamer info")
         else:
-            try:
-                for line in features_text.split("\n"):
-                    (status, name) = map(str.strip, line.split(" "))
-                    features[name] = (status == "+")
-            except Exception:
-                get_logger(0).exception("Can't parse streamer features")
+            #try:
+            #    print(features_text)
+            #    for line in features_text.split("\n"):
+            #        (status, name) = map(str.strip, line.split(" "))
+            #        features[name] = (status == "+")
+            #except Exception:
+            #    get_logger(0).exception("Can't parse streamer features")
+            pass
         return {
             "app": os.path.basename(path),
             "version": version,

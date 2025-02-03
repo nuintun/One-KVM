@@ -23,7 +23,7 @@
 from typing import Callable
 from typing import Any
 
-import gpiod
+#import gpiod
 
 from ... import aiotools
 from ... import aiogp

@@ -38,8 +38,10 @@ from aiohttp.web import StreamResponse
 
 import os
 from aiohttp import ClientConnectionError
+from aiohttp import ClientPayloadError
 from aiohttp import ClientSession
 from aiohttp import UnixConnector
+from aiohttp import ClientTimeout
 from urllib.parse import urlencode
 
 
@@ -329,9 +331,11 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         socket_path = self.__streamer.get_path()
         query_string = urlencode(request.query)
         headers = request.headers.copy()
+        time_out = ClientTimeout(total=10)
         try:
-            async with ClientSession(connector=UnixConnector(path=socket_path)) as session:
-                backend_url = f'http://localhost/stream?{query_string}' if query_string else 'http://localhost/stream'
+            #async with ClientSession(connector=UnixConnector(path=socket_path)) as session:
+            async with ClientSession() as session:
+                backend_url = f'http://localhost:8000/stream?{query_string}' if query_string else 'http://localhost:8000/stream'
                 async with session.get(backend_url, headers=headers) as resp:
                     response = StreamResponse(status=resp.status, reason=resp.reason, headers=resp.headers)
                     await response.prepare(request)
@@ -341,7 +345,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
                             break
                         await response.write(chunk)
                     return response
-        except ClientConnectionError:
+        except (ClientConnectionError, ClientPayloadError, ConnectionResetError):
             return Response(status=500, text="Client connection was closed")
 
 

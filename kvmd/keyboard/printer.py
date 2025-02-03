@@ -30,29 +30,8 @@ from .mappings import WebModifiers
 
 
 # =====
-def _load_libxkbcommon() -> ctypes.CDLL:
-    path = ctypes.util.find_library("xkbcommon")
-    if not path:
-        raise RuntimeError("Where is libxkbcommon?")
-    assert path
-    lib = ctypes.CDLL(path)
-    for (name, restype, argtypes) in [
-        ("xkb_utf32_to_keysym", ctypes.c_uint32, [ctypes.c_uint32]),
-    ]:
-        func = getattr(lib, name)
-        if not func:
-            raise RuntimeError(f"Where is libc.{name}?")
-        setattr(func, "restype", restype)
-        setattr(func, "argtypes", argtypes)
-    return lib
 
 
-_libxkbcommon = _load_libxkbcommon()
-
-
-def _ch_to_keysym(ch: str) -> int:
-    assert len(ch) == 1
-    return _libxkbcommon.xkb_utf32_to_keysym(ord(ch))
 
 
 # =====
@@ -83,10 +62,6 @@ def text_to_web_keys(  # pylint: disable=too-many-branches
             elif ch == "—":  # Long
                 ch = "--"
             if not ch.isprintable():
-                continue
-            try:
-                keys = symmap[_ch_to_keysym(ch)]
-            except Exception:
                 continue
 
         for (modifiers, key) in keys.items():

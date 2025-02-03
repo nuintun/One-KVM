@@ -21,6 +21,7 @@
 
 
 import os
+import platform
 import signal
 import asyncio
 import asyncio.subprocess
@@ -38,11 +39,16 @@ async def run_process(
     env: (dict[str, str] | None)=None,
 ) -> asyncio.subprocess.Process:  # pylint: disable=no-member
 
+    if platform.system() != 'Windows':
+        preexec_fn=os.setpgrp
+    else:
+        preexec_fn=None  # 或者选择适合 Windows 的其他方式
+
     return (await asyncio.create_subprocess_exec(
         *cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=(asyncio.subprocess.DEVNULL if err_to_null else asyncio.subprocess.STDOUT),
-        preexec_fn=os.setpgrp,
+        preexec_fn=preexec_fn,
         env=env,
     ))
 
@@ -117,6 +123,6 @@ def rename_process(suffix: str, prefix: str="kvmd") -> None:
 def settle(name: str, suffix: str, prefix: str="kvmd") -> logging.Logger:
     logger = get_logger(1)
     logger.info("Started %s pid=%d", name, os.getpid())
-    os.setpgrp()
+    #os.setpgrp()
     rename_process(suffix, prefix)
     return logger

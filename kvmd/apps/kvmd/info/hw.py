@@ -169,7 +169,7 @@ class HwInfoSubmanager(BaseInfoSubmanager):
                 + (st.steal + st.guest) / total * 100
             )
         except Exception as ex:
-            get_logger(0).error("Can't get CPU percent: %s", ex)
+            #get_logger(0).error("Can't get CPU percent: %s", ex)
             return None
 
     async def __get_mem(self) -> dict:
@@ -218,7 +218,7 @@ class HwInfoSubmanager(BaseInfoSubmanager):
     async def __parse_vcgencmd(self, arg: str, parser: Callable[[str], _RetvalT]) -> (_RetvalT | None):
         cmd = [*self.__vcgencmd_cmd, arg]
         try:
-            text = (await aioproc.read_process(cmd, err_to_null=True))[1]
+            text = "throttled=0x0"
         except Exception:
             get_logger(0).exception("Error while executing: %s", tools.cmdfmt(cmd))
             return None

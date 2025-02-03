@@ -181,12 +181,13 @@ def _init_config(config_path: str, override_options: list[str], **load_flags: bo
         _patch_raw(raw_config)
         config = make_config(raw_config, scheme)
 
-        if _patch_dynamic(raw_config, config, scheme, **load_flags):
-            config = make_config(raw_config, scheme)
-
-        return config
+        
     except (ConfigError, UnknownPluginError) as ex:
         raise SystemExit(f"ConfigError: {ex}")
+    if _patch_dynamic(raw_config, config, scheme, **load_flags):
+        config = make_config(raw_config, scheme)
+
+    return config
 
 
 def _patch_raw(raw_config: dict) -> None:  # pylint: disable=too-many-branches

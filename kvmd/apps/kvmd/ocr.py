@@ -78,7 +78,7 @@ def _load_libtesseract() -> (ctypes.CDLL | None):
             setattr(func, "argtypes", argtypes)
         return lib
     except Exception as ex:
-        warnings.warn(f"Can't load libtesseract: {ex}", RuntimeWarning)
+        #warnings.warn(f"Can't load libtesseract: {ex}", RuntimeWarning)
         return None
 
 

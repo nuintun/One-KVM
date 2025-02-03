@@ -23,6 +23,7 @@
 import os
 import re
 import asyncio
+import sys
 
 from typing import AsyncGenerator
 
@@ -51,7 +52,7 @@ class ExtrasInfoSubmanager(BaseInfoSubmanager):
             sui = sysunit.SystemdUnitInfo()
             await sui.open()
         except Exception as ex:
-            if not os.path.exists("/etc/kvmd/.docker_flag"):
+            if not os.path.exists("/etc/kvmd/.docker_flag") or not sys.platform.startswith('linux'):
                 get_logger(0).error("Can't open systemd bus to get extras state: %s", tools.efmt(ex))
             sui = None
         try:

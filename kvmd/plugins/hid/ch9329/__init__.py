@@ -200,6 +200,7 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
         while not self.__stop_event.is_set():
             try:
                 self.__hid_loop()
+                time.sleep(1)
             except Exception:
                 logger.exception("Unexpected error in the run loop")
                 time.sleep(1)
@@ -222,6 +223,10 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
                             self.__process_cmd(conn, b"")
                         else:
                             self.__process_cmd(conn, cmd)
+            except KeyboardInterrupt:
+                get_logger(0).info("KeyboardInterrupt received, exiting HID loop.")
+                self.clear_events()
+                break
             except Exception:
                 self.clear_events()
                 get_logger(0).exception("Unexpected error in the HID loop")

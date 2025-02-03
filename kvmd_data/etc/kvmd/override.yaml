@@ -26,7 +26,7 @@ kvmd:
 
     hid:
         type: ch9329
-        device: /dev/ttyUSB0
+        device: COM7
         speed: 115200
         read_timeout: 0.3
 
@@ -53,7 +53,7 @@ kvmd:
 
     streamer:
         resolution:
-            default: 1920x1080
+            default: 1280x720
 
         forever: true
 
@@ -64,31 +64,29 @@ kvmd:
         h264_bitrate:
             default: 8000
 
-        cmd:
-            - "kvmd_data/usr/bin/ustreamer"
-            - "--device=/dev/video0"
-            - "--persistent"
-            - "--format=mjpeg"
-            - "--resolution={resolution}"
-            - "--desired-fps={desired_fps}"
-            - "--drop-same-frames=30"
-            - "--last-as-blank=0"
-            - "--unix={unix}"
-            - "--unix-rm"
-            - "--unix-mode=777"
-            - "--exit-on-parent-death"
-            - "--notify-parent"
-            - "--no-log-colors"
-            - "--jpeg-sink=kvmd::ustreamer::jpeg"
-            - "--jpeg-sink-mode=0660"
-            - "--slowdown"
+        pre_start_cmd: kvmd_data/win/true.exe
+        post_stop_cmd: kvmd_data/win/true.exe
 
-        unix: kvmd_data/run/kvmd/ustreamer.sock
+        cmd:
+            - "C:/Users/mofen/miniconda3/python.exe"
+            - "ustreamer-win/ustreamer-win.py"
+            - "--device=0"
+            - "--resolution={resolution}"
+            - "--fps={desired_fps}"
+            - "--quality=100"
+
+
+        unix: http://localhost:8000
 
     
 ipmi:
     auth:
         file: kvmd_data/etc/kvmd/ipmipasswd
+
+pst:
+    remount_cmd: 
+    - "kvmd_data/win/true.exe"
+
 
 vnc:
     keymap: kvmd_data/usr/share/kvmd/keymaps/en-us
@@ -110,10 +108,20 @@ vnc:
 
 otgnet:
     commands:
+        pre_start_cmd:
+        - "kvmd_data/win/true.exe"
+        post_stop_cmd:
+        - "kvmd_data/win/true.exe"
         post_start_cmd:
-            - "/bin/true"
+            - "kvmd_data/win/true.exe"
         pre_stop_cmd:
-            - "/bin/true"
+            - "kvmd_data/win/true.exe"
+    iface:
+        ip_cmd:
+        - "kvmd_data/win/true.exe"
+    firewall:
+        iptables_cmd:
+        - "kvmd_data/win/true.exe"
 
 nginx:
     http:
@@ -123,4 +131,4 @@ nginx:
 
 janus:
     cmd:
-    - "/bin/true"
+    - "kvmd_data/win/true.exe"
