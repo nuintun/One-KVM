@@ -12,7 +12,6 @@ def configure_logging():
     return logging.getLogger(__name__)
 
 def get_windows_cameras(logger):
-    """Retrieve available camera devices on Windows system"""
     from win32com.client import Dispatch
     devices = []
     try:
@@ -31,7 +30,6 @@ def get_windows_cameras(logger):
     return devices
 
 def test_camera(index, logger):
-    """Test if the camera is available"""
     try:
         cap = cv2.VideoCapture(index, cv2.CAP_DSHOW if platform.system() == "Windows" else cv2.CAP_ANY)
         if cap.isOpened():
