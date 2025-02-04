@@ -19,7 +19,7 @@
 *.pyc
 *.swp
 /venv/
-.vscode/settings.j/son
+.vscode/settings.json
 kvmd_config/
 __pycache__/
 kvmd_data/run/kvmd/*
@@ -30,3 +30,7 @@ kvmd-launcher.dist
 kvmd-launcher.onefile-build
 ustreamer/
 node_modules/
+build/
+*/dist/*
+*/build/*
+*.spec

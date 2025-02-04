@@ -83,9 +83,9 @@ class HwInfoSubmanager(BaseInfoSubmanager):
         )
         return {
             "platform": {
-                "type": "rpi",
+                "type": "windows",
                 "base": base,
-                "serial": serial,
+                "serial": "windows1000000000",
                 **platform,  # type: ignore
             },
             "health": {
@@ -124,7 +124,7 @@ class HwInfoSubmanager(BaseInfoSubmanager):
                 self.__dt_cache[name] = (await aiotools.read_file(path)).strip(" \t\r\n\0")
             except Exception as err:
                 #get_logger(0).warn("Can't read DT %s from %s: %s", name, path, err)
-                return None
+                return "windows"
         return self.__dt_cache[name]
 
     async def __read_platform_file(self) -> dict:
@@ -142,8 +142,8 @@ class HwInfoSubmanager(BaseInfoSubmanager):
                 "board": parsed["PIKVM_BOARD"],
             }
         except Exception:
-            get_logger(0).exception("Can't read device model")
-            return {"model": None, "video": None, "board": None}
+            #get_logger(0).exception("Can't read device model")
+            return {"model": "V2", "video": "USB_VIDEO", "board": "Windows"}
 
     async def __get_cpu_temp(self) -> (float | None):
         temp_path = f"{env.SYSFS_PREFIX}/sys/class/thermal/thermal_zone0/temp"
@@ -155,21 +155,9 @@ class HwInfoSubmanager(BaseInfoSubmanager):
 
     async def __get_cpu_percent(self) -> (float | None):
         try:
-            st = psutil.cpu_times_percent()
-            user = st.user - st.guest
-            nice = st.nice - st.guest_nice
-            idle_all = st.idle + st.iowait
-            system_all = st.system + st.irq + st.softirq
-            virtual = st.guest + st.guest_nice
-            total = max(1, user + nice + system_all + idle_all + st.steal + virtual)
-            return int(
-                st.nice / total * 100
-                + st.user / total * 100
-                + system_all / total * 100
-                + (st.steal + st.guest) / total * 100
-            )
+            return int(psutil.cpu_percent(interval=1))
         except Exception as ex:
-            #get_logger(0).error("Can't get CPU percent: %s", ex)
+            get_logger(0).error("Can't get CPU percent: %s", ex)
             return None
 
     async def __get_mem(self) -> dict:

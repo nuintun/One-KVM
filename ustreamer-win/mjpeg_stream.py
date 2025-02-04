@@ -3,9 +3,9 @@ import threading
 import time
 import json
 from collections import deque
-from typing import List, Optional, Tuple, Union, Dict, Any
+from typing import List, Optional, Tuple, Dict
+import uuid
 
-import aiohttp
 import cv2
 import logging
 import numpy as np
@@ -13,8 +13,7 @@ from aiohttp import MultipartWriter, web
 from aiohttp.web_runner import GracefulExit
 
 class MjpegStream:
-    """MJPEG video stream class for handling video frames and providing HTTP streaming service"""
-    
+
     def __init__(
         self,
         name: str,
@@ -26,19 +25,7 @@ class MjpegStream:
         device_name: str = "Unknown Camera",
         log_requests: bool = True
     ) -> None:
-        """
-        Initialize MJPEG stream
-        
-        Args:
-            name: Stream name
-            size: Video size (width, height)
-            quality: JPEG compression quality (1-100)
-            fps: Target frame rate
-            host: Server host address
-            port: Server port
-            device_name: Camera device name
-            log_requests: Whether to log stream requests
-        """
+
         self.name = name.lower().replace(" ", "_")
         self.size = size
         self.quality = max(1, min(quality, 100))
@@ -48,53 +35,58 @@ class MjpegStream:
         self._device_name = device_name
         self.log_requests = log_requests
         
-        # Video frame and synchronization
         self._frame = np.zeros((320, 240, 1), dtype=np.uint8)
         self._lock = asyncio.Lock()
-        self._byte_frame_window = deque(maxlen=30)
-        self._bandwidth_last_modified_time = time.time()
         self._is_online = True
-        self._last_frame_time = time.time()
+        self._last_repeat_frame_time = time.time()
+        self._last_fps_update_time = time.time()
+        self._last_frame_data = None
+        self.per_second_fps = 0
+        self.frame_counter = 0
         
-
-        # 设置日志级别为ERROR，以隐藏HTTP请求日志
         if not self.log_requests:
             logging.getLogger('aiohttp.access').setLevel(logging.ERROR)
 
-        # Server setup
         self._app = web.Application()
         self._app.router.add_route("GET", f"/{self.name}", self._stream_handler)
         self._app.router.add_route("GET", "/state", self._state_handler)
         self._app.router.add_route("GET", "/", self._index_handler)
+        self._app.router.add_route("GET", "/snapshot", self._snapshot_handler)
         self._app.is_running = False
+        self._clients: Dict[str, Dict] = {}
+        self._clients_lock = asyncio.Lock()
+
 
     def set_frame(self, frame: np.ndarray) -> None:
-        """Set the current video frame"""
         self._frame = frame
-        self._last_frame_time = time.time()
         self._is_online = True
 
-    def get_bandwidth(self) -> float:
-        """Get current bandwidth usage (bytes/second)"""
-        if time.time() - self._bandwidth_last_modified_time >= 1:
-            self._byte_frame_window.clear()
-        return sum(self._byte_frame_window)
-
     async def _process_frame(self) -> Tuple[np.ndarray, Dict[str, str]]:
-        """Process video frame (resize and JPEG encode)"""
         frame = cv2.resize(
             self._frame, self.size or (self._frame.shape[1], self._frame.shape[0])
         )
         success, encoded = cv2.imencode(
             ".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, self.quality]
         )
+
         if not success:
             raise ValueError("Error encoding frame")
-            
-        self._byte_frame_window.append(len(encoded.tobytes()))
-        self._bandwidth_last_modified_time = time.time()
+        
+        current_frame_data = encoded.tobytes()
+        current_time = time.time()
+        
+        if current_frame_data == self._last_frame_data and current_time - self._last_repeat_frame_time < 1:
+            return None, {}
+        else:
+            self._last_frame_data = current_frame_data
+            self._last_repeat_frame_time = current_time
 
-        # Add KVMD-compatible header information
+        if current_time - self._last_fps_update_time >= 1:
+            self.per_second_fps = self.frame_counter
+            self.frame_counter = 0
+            self._last_fps_update_time = current_time
+
+        self.frame_counter += 1
         headers = {
             "X-UStreamer-Online": str(self._is_online).lower(),
             "X-UStreamer-Width": str(frame.shape[1]),
@@ -109,60 +101,68 @@ class MjpegStream:
         return encoded, headers
 
     async def _stream_handler(self, request: web.Request) -> web.StreamResponse:
-        """Handle MJPEG stream requests"""
+        client_id = request.query.get("client_id", uuid.uuid4().hex[:8])
+        client_key = request.query.get("key", "0")
+        advance_headers = request.query.get("advance_headers", "0") == "1"
+
         response = web.StreamResponse(
             status=200,
             reason="OK",
-            headers={"Content-Type": "multipart/x-mixed-replace;boundary=frame"}
+            headers={
+                "Content-Type": "multipart/x-mixed-replace;boundary=frame",
+                "Set-Cookie": f"stream_client={client_key}/{client_id}; Path=/; Max-Age=30"
+                }
         )
         await response.prepare(request)
 
-        if self.log_requests:
-            print(f"Stream request received: {request.path}")
+        async with self._clients_lock:
+            if client_id not in self._clients:
+                self._clients[client_id] = {
+                    "key": client_key,
+                    "advance_headers": advance_headers,
+                    "extra_headers": False,
+                    "zero_data": False,
+                    "fps": 0,
+                }
             
+        try:
+            while True: 
+                async with self._lock:
+                    frame, headers = await self._process_frame()
+                    if frame is None:
+                        continue
 
-        while True:
-            await asyncio.sleep(1 / self.fps)
-            
-            # Check if the device is online
-            if time.time() - self._last_frame_time > 5:
-                self._is_online = False
-            
-            async with self._lock:
-                frame, headers = await self._process_frame()
-                
-            with MultipartWriter("image/jpeg", boundary="frame") as mpwriter:
-                part = mpwriter.append(frame.tobytes(), {"Content-Type": "image/jpeg"})
-                for key, value in headers.items():
-                    part.headers[key] = value
-                try:
-                    await mpwriter.write(response, close_boundary=False)
-                except (ConnectionResetError, ConnectionAbortedError):
-                    return web.Response(status=499)
-            await response.write(b"\r\n")
+                #Enable workaround for the Chromium/Blink bug https://issues.chromium.org/issues/41199053
+                if advance_headers:
+                    headers.pop('Content-Length', None)
+                    for k in list(headers.keys()):
+                        if k.startswith('X-UStreamer-'):
+                            del headers[k]
+                    
+                with MultipartWriter("image/jpeg", boundary="frame") as mpwriter:
+                    part = mpwriter.append(frame.tobytes(), {"Content-Type": "image/jpeg"})
+                    for key, value in headers.items():
+                        part.headers[key] = value
+                    try:
+                        await mpwriter.write(response, close_boundary=False)
+                    except (ConnectionResetError, ConnectionAbortedError):
+                        return web.Response(status=499)
+                await response.write(b"\r\n")
+                self._clients[client_id]["fps"]=self.per_second_fps
+        finally:
+            async with self._clients_lock:
+                if client_id in self._clients:
+                    del self._clients[client_id]
+
 
     async def _state_handler(self, request: web.Request) -> web.Response:
-        """Handle /state requests and return device status information"""
         state = {
+            "ok": "true",
             "result": {
                 "instance_id": "",
                 "encoder": {
                     "type": "CPU",
                     "quality": self.quality
-                },
-                "h264": {
-                    "bitrate": 4875,
-                    "gop": 60,
-                    "online": self._is_online,
-                    "fps": self.fps
-                },
-                "sinks": {
-                    "jpeg": {
-                        "has_clients": False
-                    },
-                    "h264": {
-                        "has_clients": False
-                    }
                 },
                 "source": {
                     "resolution": {
@@ -171,21 +171,12 @@ class MjpegStream:
                     },
                     "online": self._is_online,
                     "desired_fps": self.fps,
-                    "captured_fps": 0  # You can update this with actual captured fps if needed
+                    "captured_fps": self.fps
                 },
                 "stream": {
-                    "queued_fps": 2,  # Placeholder value, update as needed
-                    "clients": 1,  # Placeholder value, update as needed
-                    "clients_stat": {
-                        "70bf63a507f71e47": {
-                            "fps": 2,  # Placeholder value, update as needed
-                            "extra_headers": False,
-                            "advance_headers": True,
-                            "dual_final_frames": False,
-                            "zero_data": False,
-                            "key": "tIR9TtuedKIzDYZa"  # Placeholder key, update as needed
-                        }
-                    }
+                    "queued_fps": self.fps,
+                    "clients": len(self._clients),
+                    "clients_stat": self._clients
                 }
             }
         }
@@ -195,18 +186,30 @@ class MjpegStream:
         )
 
     async def _index_handler(self, _: web.Request) -> web.Response:
-        """Handle root path requests and display available streams"""
         html = f"""
-        <h2>Available Video Streams:</h2>
-        <ul>
-            <li><a href='http://{self._host}:{self._port}/{self.name}'>/{self.name}</a></li>
-            <li><a href='http://{self._host}:{self._port}/state'>/state</a></li>
+        <html>
+        <head><meta charset="utf-8"><title>uStreamer-Win</title><style>body {{font-family: monospace;}}</style></head>
+        <body>
+        <h3>uStreamer-Win v0.01 </h3>
+        <ul><hr>
+            <li><a href='http://{self._host}:{self._port}/{self.name}'>/{self.name}</a>
+            <br>Get a live stream. </li><hr><br>
+            <li><a href='http://{self._host}:{self._port}/snapshot'>/snapshot</a>
+            <br>Get a current actual image from the server.</li><hr><br>
+            <li><a href='http://{self._host}:{self._port}/state'>/state</a>
+            <br>Get JSON structure with the state of the server.</li><hr><br>
         </ul>
+        </body>
+        </html>
         """
         return web.Response(text=html, content_type="text/html")
 
+    async def _snapshot_handler(self, request: web.Request) -> web.Response:
+        async with self._lock:
+            frame, _ = await self._process_frame()
+        return web.Response(body=frame.tobytes(), content_type="image/jpeg")
+
     def start(self) -> None:
-        """Start the stream server"""
         if not self._app.is_running:
             threading.Thread(target=self._run_server, daemon=True).start()
             self._app.is_running = True
@@ -214,8 +217,8 @@ class MjpegStream:
         else:
             print("\nServer is already running\n")
 
+
     def stop(self) -> None:
-        """Stop the stream server"""
         if self._app.is_running:
             self._app.is_running = False
             print("\nStopping server...\n")
@@ -223,7 +226,6 @@ class MjpegStream:
         print("\nServer is not running\n")
 
     def _run_server(self) -> None:
-        """Run the server in a new thread"""
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         runner = web.AppRunner(self._app)

@@ -53,7 +53,7 @@ class ExtrasInfoSubmanager(BaseInfoSubmanager):
             await sui.open()
         except Exception as ex:
             if not os.path.exists("/etc/kvmd/.docker_flag") or not sys.platform.startswith('linux'):
-                get_logger(0).error("Can't open systemd bus to get extras state: %s", tools.efmt(ex))
+                get_logger(0).error("Can't open systemd bus to get extras state.")
             sui = None
         try:
             extras: dict[str, dict] = {}

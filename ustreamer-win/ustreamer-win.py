@@ -41,7 +41,6 @@ def test_camera(index, logger):
     return False
 
 def find_camera_by_name(camera_name, logger):
-    """Find device index by camera name"""
     if platform.system() != "Windows":
         logger.warning("Finding camera by name is only supported on Windows")
         return None
@@ -57,7 +56,6 @@ def find_camera_by_name(camera_name, logger):
     return None
 
 def get_first_available_camera(logger):
-    """Get the first available camera"""
     for i in range(5):
         if test_camera(i, logger):
             return i
@@ -75,13 +73,10 @@ def parse_arguments():
     parser.add_argument('--port', type=int, default=8000, help='Server port')
     args = parser.parse_args()
 
-    # Validate arguments
     if args.quality < 1 or args.quality > 100:
         raise ValueError("Quality must be between 1 and 100.")
     if args.fps <= 0:
         raise ValueError("FPS must be greater than 0.")
-    
-    # Parse resolution
     try:
         width, height = map(int, args.resolution.split('x'))
     except ValueError:
@@ -95,14 +90,9 @@ def parse_arguments():
 def main():
     logger = configure_logging()
     args = parse_arguments()
-
-    # Determine which camera device to use
     device_index = None
     
     if args.device_name:
-        if platform.system() != "Windows":
-            logger.error("Specifying camera by name is only supported on Windows")
-            return
         device_index = find_camera_by_name(args.device_name, logger)
         if device_index is None:
             logger.error(f"No available camera found with a name containing '{args.device_name}'")
@@ -122,23 +112,21 @@ def main():
 
     # Initialize the camera
     try:
-        cap = cv2.VideoCapture(device_index, cv2.CAP_DSHOW if platform.system() == "Windows" else cv2.CAP_ANY)
+        cap = cv2.VideoCapture(device_index, cv2.CAP_DSHOW)
             
         if not cap.isOpened():
             logger.error(f"Unable to open camera {device_index}")
             return
 
-        # Set camera parameters
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
-        
-        # Verify camera settings
+        cap.set(cv2.CAP_PROP_FRAME_COUNT, args.fps)
+        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G'))
         actual_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
         actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
         if actual_width != args.width or actual_height != args.height:
             logger.warning(f"Actual resolution ({actual_width}x{actual_height}) does not match requested resolution ({args.width}x{args.height})")
 
-        # Test if we can read frames
         ret, _ = cap.read()
         if not ret:
             logger.error("Unable to read video frames from the camera")
@@ -155,13 +143,13 @@ def main():
     try:
         stream = MjpegStream(
             name="stream",
-            size=(int(actual_width), int(actual_height)),  # Use actual resolution
+            size=(int(actual_width), int(actual_height)),
             quality=args.quality,
             fps=args.fps,
             host=args.host,
             port=args.port,
-            device_name=args.device_name or f"Camera {device_index}",  # Add device name
-            log_requests=False  # 设置为False以隐藏HTTP请求日志
+            device_name=args.device_name or f"Camera {device_index}",
+            log_requests=False
         )
         stream.start()
         logger.info(f"Video stream started: http://{args.host}:{args.port}/stream")
@@ -176,20 +164,11 @@ def main():
 
     except KeyboardInterrupt:
         logger.info("User interrupt")
-    except Exception as e:
-        logger.error(f"An error occurred: {str(e)}")
     finally:
         logger.info("Cleaning up resources...")
-        try:
-            stream.stop()
-        except Exception as e:
-            logger.error(f"Error stopping the video stream: {str(e)}")
-        try:
-            cap.release()
-        except Exception as e:
-            logger.error(f"Error releasing the camera: {str(e)}")
+        stream.stop()
+        cap.release()
         cv2.destroyAllWindows()
-        logger.info("Program has exited")
 
 if __name__ == "__main__":
     main()

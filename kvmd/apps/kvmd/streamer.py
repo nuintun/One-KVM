@@ -418,7 +418,7 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
                 await self.__start_streamer_proc()
                 assert self.__streamer_proc is not None
                 await aioproc.log_stdout_infinite(self.__streamer_proc, logger)
-                raise RuntimeError("Streamer unexpectedly died")
+                logger.exception("Streamer unexpectedly died")
             except asyncio.CancelledError:
                 break
             except Exception:
